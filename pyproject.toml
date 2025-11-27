@@ -1,0 +1,15 @@
+[project]
+name = "Dapao-Toolbox"
+description = "Comfyui大炮工具箱，集合comfyui搭建过程中常用工具，不断更新中……"
+version = "1.4.0"
+license = { file = "LICENSE" }
+
+[project.urls]
+Repository = "https://github.com/paolaoshi/Dapao-Toolbox"
+
+[tool.comfy]
+PublisherId = "paolaoshi"
+DisplayName = "Dapao-Toolbox"
+Icon = ""
+Banner = ""
+
