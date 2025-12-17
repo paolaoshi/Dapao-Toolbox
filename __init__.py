@@ -6,6 +6,7 @@ from .image_aspect_ratio_node import ImageAspectRatioResizeNode
 from .image_pad_direction_node import DapaoImagePadDirectionNode
 from .prompt_brake_node import PromptBrakeNode
 from .realtime_image_adjust_node import DapaoRealtimeImageAdjustNode
+from .image_grid_stitcher_v2_node import ImageGridStitcherV2Node
 
 # 前端资源目录
 WEB_DIRECTORY = "./web"
@@ -19,6 +20,7 @@ NODE_CLASS_MAPPINGS = {
     "DapaoImagePadDirectionNode": DapaoImagePadDirectionNode, # 按方向外补画板
     "DapaoPromptBrakeNode": PromptBrakeNode,                # 提示词刹车节点
     "DapaoRealtimeImageAdjustNode": DapaoRealtimeImageAdjustNode,     # 实时图像调整节点
+    "DapaoImageGridStitcherV2Node": ImageGridStitcherV2Node,          # 图片网格拼接 V2
 }
 
 # 节点显示名称映射
@@ -30,6 +32,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DapaoImagePadDirectionNode": "按方向外补画板 🖌️@炮老师的小课堂",
     "DapaoPromptBrakeNode": "提示词刹车🥝@炮老师的小课堂",
     "DapaoRealtimeImageAdjustNode": "实时图像调整 🎨@炮老师的小课堂",
+    "DapaoImageGridStitcherV2Node": "图片网格拼接 🧩@炮老师的小课堂",
 }
 
 # 导出所有节点
