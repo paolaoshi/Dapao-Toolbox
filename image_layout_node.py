@@ -56,22 +56,22 @@ class ImageLayoutNode:
                 }),
                 # 📏 基准图最长边
                 "📏 基准图最长边": ("INT", {
-                    "default": 512,
-                    "min": 256,
-                    "max": 2048,
+                    "default": 1024,
+                    "min": 128,
+                    "max": 8192,
                     "step": 64,
                     "tooltip": "基准图最长边的像素值（自定义模式下生效）"
                 }),
                 # 📐 布局模式
                 "📐 布局模式": (["自动", "固定列数", "固定行数"], {
-                    "default": "自动",
+                    "default": "固定列数",
                     "tooltip": "自动=自动计算最优布局, 固定列数=固定列数, 固定行数=固定行数"
                 }),
                 # 📊 列数
                 "📊 列数": ("INT", {
-                    "default": 2,
+                    "default": 4,
                     "min": 1,
-                    "max": 10,
+                    "max": 20,
                     "step": 1,
                     "tooltip": "右侧网格的列数（固定列数模式下生效）"
                 }),
@@ -79,7 +79,7 @@ class ImageLayoutNode:
                 "📏 行数": ("INT", {
                     "default": 2,
                     "min": 1,
-                    "max": 10,
+                    "max": 20,
                     "step": 1,
                     "tooltip": "右侧网格的行数（固定行数模式下生效）"
                 }),
@@ -87,22 +87,22 @@ class ImageLayoutNode:
                 "🔍 小图尺寸": ("INT", {
                     "default": 256,
                     "min": 64,
-                    "max": 1024,
-                    "step": 64,
+                    "max": 2048,
+                    "step": 32,
                     "tooltip": "右侧批次图片的尺寸（正方形）"
                 }),
                 # 📏 间距
                 "📏 间距": ("INT", {
                     "default": 10,
                     "min": 0,
-                    "max": 100,
-                    "step": 1,
+                    "max": 500,
+                    "step": 5,
                     "tooltip": "图片之间的间距（像素）"
                 }),
                 # 🎨 缩放模式
-                "🎨 缩放模式": (["适应", "裁剪", "拉伸"], {
-                    "default": "适应",
-                    "tooltip": "适应=保持比例适应, 裁剪=裁剪填充, 拉伸=拉伸填充"
+                "🎨 缩放模式": (["适应", "裁剪", "拉伸", "无边框裁剪", "无边框拓展", "智能瀑布流"], {
+                    "default": "智能瀑布流",
+                    "tooltip": "智能瀑布流=完美对齐无缝无裁剪, 适应=保持比例适应, 裁剪=裁剪填充, 拉伸=拉伸填充, 无边框裁剪=放大裁剪填满, 无边框拓展=拉伸填满"
                 }),
                 # 🌈 背景颜色
                 "🌈 背景颜色": (["白色", "黑色", "灰色", "透明"], {
@@ -139,7 +139,7 @@ class ImageLayoutNode:
                 "📏 边框宽度": ("INT", {
                     "default": 2,
                     "min": 1,
-                    "max": 10,
+                    "max": 50,
                     "step": 1,
                     "tooltip": "边框宽度（像素）"
                 })
@@ -154,12 +154,6 @@ class ImageLayoutNode:
     def create_layout(self, **kwargs):
         """
         创建图片排列布局 - 支持四种排列方向
-        
-        排列方向：
-        - 左右排列：基准图在左，批次图在右
-        - 上下排列：基准图在上，批次图在下
-        - 左上排列：基准图在左上角，批次图环绕
-        - 右上排列：基准图在右上角，批次图环绕
         """
         
         # 获取参数
@@ -184,7 +178,15 @@ class ImageLayoutNode:
         
         # 映射中文选项到英文
         layout_mode_map = {"自动": "auto", "固定列数": "fixed_columns", "固定行数": "fixed_rows"}
-        resize_mode_map = {"适应": "fit", "裁剪": "crop", "拉伸": "stretch"}
+        resize_mode_map = {
+            "适应": "fit", 
+            "裁剪": "crop", 
+            "拉伸": "stretch", 
+            "无边框裁剪": "borderless_crop", 
+            "无边框拓展": "borderless_expand", 
+            "无边框智能": "smart_masonry",  # 兼容旧配置
+            "智能瀑布流": "smart_masonry"
+        }
         bg_color_map = {"白色": "white", "黑色": "black", "灰色": "gray", "透明": "transparent"}
         border_color_map = {"黑色": "black", "白色": "white", "灰色": "gray", "红色": "red", "蓝色": "blue"}
         arrangement_map = {"左右排列": "left_right", "上下排列": "top_bottom", "左上排列": "top_left", "右上排列": "top_right"}
@@ -238,6 +240,29 @@ class ImageLayoutNode:
                 error_tensor = self.pil_to_tensor(error_img)
                 return (error_tensor, "❌ 错误: 没有批次图片", 1, 0)
             
+            # 3. 检查是否使用智能瀑布流模式
+            if resize_mode_en == "smart_masonry":
+                # 使用瀑布流智能布局，复用现有的列数和小图尺寸参数
+                return self.create_masonry_layout(
+                    base_pil=base_pil,
+                    batch_pils=batch_pils,
+                    arrangement_en=arrangement_en,
+                    base_size_mode=base_size_mode,
+                    base_max_size=base_max_size,
+                    spacing=spacing,
+                    bg_color_en=bg_color_en,
+                    add_border=add_border,
+                    border_color_en=border_color_en,
+                    border_width=border_width,
+                    batch_count=batch_count,
+                    use_folder=use_folder,
+                    folder_path=folder_path,
+                    arrangement=arrangement,
+                    layout_mode=layout_mode,
+                    columns=columns,
+                    small_size=small_size
+                )
+            
             # 3. 计算右侧网格的行列数
             if layout_mode_en == "auto":
                 # 自动计算最优行列数（尽量接近正方形网格）
@@ -260,6 +285,7 @@ class ImageLayoutNode:
             grid_rows = max(1, grid_rows)
             
             # 4. 计算批次图片网格区域的尺寸
+            # 所有模式都使用small_size作为格子尺寸
             grid_width = grid_cols * small_size + (grid_cols - 1) * spacing
             grid_height = grid_rows * small_size + (grid_rows - 1) * spacing
             
@@ -364,6 +390,12 @@ class ImageLayoutNode:
                 elif resize_mode_en == "stretch":
                     # 拉伸模式：直接拉伸到正方形
                     batch_resized = self.resize_to_square_stretch(batch_img, small_size)
+                elif resize_mode_en == "borderless_crop":
+                    # 无边框裁剪模式：按最长边缩放到格子尺寸，裁剪多余部分
+                    batch_resized = self.resize_to_borderless_crop(batch_img, small_size, small_size)
+                elif resize_mode_en == "borderless_expand":
+                    # 无边框拓展模式：按最长边缩放适应格子，不填充白底
+                    batch_resized = self.resize_to_borderless_expand(batch_img, small_size, small_size)
                 else:
                     # 默认使用适应模式
                     batch_resized = self.resize_to_square_fit(batch_img, small_size, bg_color)
@@ -389,6 +421,7 @@ class ImageLayoutNode:
                 f"📐 布局: {layout_mode} | "
                 f"📸 基准图: {base_width}×{base_height} | "
                 f"📊 网格: {grid_rows}行×{grid_cols}列 | "
+                f"🔍 批次图格子: {small_size}×{small_size} | "
                 f"🖼️ 批次: {batch_count}张({source_info}) | "
                 f"📏 画布: {canvas_width}×{canvas_height}"
             )
@@ -499,6 +532,226 @@ class ImageLayoutNode:
         直接拉伸到目标尺寸（会变形）
         """
         return image.resize((target_size, target_size), Image.Resampling.LANCZOS)
+    
+    def resize_to_borderless_crop(self, image, target_width, target_height):
+        """
+        无边框裁剪模式
+        按照最长边缩放到格子尺寸（覆盖），然后居中裁剪到格子尺寸
+        确保填满格子，无白边
+        """
+        original_width, original_height = image.size
+        
+        # 计算缩放比例（确保至少有一边能填满格子）
+        scale = max(target_width / original_width, target_height / original_height)
+        
+        # 按比例缩放
+        new_width = int(original_width * scale)
+        new_height = int(original_height * scale)
+        resized = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        
+        # 居中裁剪到目标尺寸
+        left = (new_width - target_width) // 2
+        top = (new_height - target_height) // 2
+        cropped = resized.crop((left, top, left + target_width, top + target_height))
+        
+        return cropped
+    
+    def resize_to_borderless_expand(self, image, target_width, target_height):
+        """
+        无边框拓展模式
+        直接拉伸到目标尺寸，填满格子，无白边（可能会变形）
+        """
+        # 直接拉伸到目标尺寸
+        return image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+    
+    def create_masonry_layout(self, **kwargs):
+        """
+        创建多列瀑布流布局（完美数学对齐）
+        自适应列宽：每列宽度由该列图片的高宽比之和反推，确保总高度精确等于基准高度
+        特点：无裁剪、无变形、无缝隙、高度对齐、列宽不一
+        """
+        base_pil = kwargs.get("base_pil")
+        batch_pils = kwargs.get("batch_pils")
+        arrangement_en = kwargs.get("arrangement_en")
+        base_size_mode = kwargs.get("base_size_mode")
+        base_max_size = kwargs.get("base_max_size")
+        spacing = kwargs.get("spacing", 0)
+        bg_color_en = kwargs.get("bg_color_en")
+        add_border = kwargs.get("add_border")
+        border_color_en = kwargs.get("border_color_en")
+        border_width = kwargs.get("border_width")
+        batch_count = kwargs.get("batch_count")
+        use_folder = kwargs.get("use_folder")
+        folder_path = kwargs.get("folder_path")
+        arrangement = kwargs.get("arrangement")
+        layout_mode = kwargs.get("layout_mode")
+        columns = kwargs.get("columns", 3)
+        small_size = kwargs.get("small_size", 256)
+        
+        try:
+            # 1. 计算基准图的尺寸
+            if base_size_mode == "自定义最长边":
+                base_aspect_ratio = base_pil.width / base_pil.height
+                if base_pil.width > base_pil.height:
+                    base_width = base_max_size
+                    base_height = int(base_max_size / base_aspect_ratio)
+                else:
+                    base_height = base_max_size
+                    base_width = int(base_max_size * base_aspect_ratio)
+            else:
+                base_width = base_pil.width
+                base_height = base_pil.height
+            
+            base_resized = base_pil.resize((base_width, base_height), Image.Resampling.LANCZOS)
+            
+            # 2. 目标参数
+            num_columns = columns
+            target_height = base_height
+            
+            # 3. 初始化列数据
+            column_images = [[] for _ in range(num_columns)]
+            column_ratio_sums = [0.0] * num_columns  # 记录每列的高宽比之和 (H/W)
+            
+            # 4. 贪心分配：将图片分配到高宽比之和最小的列（这样可以让各列最终宽度尽量接近）
+            for img in batch_pils:
+                # 图片的高宽比 r = H / W
+                r = img.height / img.width
+                
+                # 找到当前 r 和最小的列
+                min_col = column_ratio_sums.index(min(column_ratio_sums))
+                
+                column_images[min_col].append(img)
+                column_ratio_sums[min_col] += r
+            
+            # 5. 计算每列的完美宽度
+            # 公式：TotalHeight = Width * Sum(r)  =>  Width = TotalHeight / Sum(r)
+            column_widths = []
+            final_columns = []
+            
+            for col_idx in range(num_columns):
+                # 如果该列没有图片，宽度设为0（防除零）
+                if column_ratio_sums[col_idx] <= 0:
+                    column_widths.append(0)
+                    final_columns.append([])
+                    continue
+                
+                # 计算该列需要的宽度
+                col_width = int(target_height / column_ratio_sums[col_idx])
+                column_widths.append(col_width)
+                
+                # 缩放该列所有图片到该宽度
+                col_imgs = []
+                current_col_h = 0
+                
+                for i, img in enumerate(column_images[col_idx]):
+                    r = img.height / img.width
+                    new_width = col_width
+                    # 高度按比例计算
+                    new_height = int(new_width * r)
+                    
+                    # 最后一个图片微调高度，消除浮点误差，确保精确对齐
+                    if i == len(column_images[col_idx]) - 1:
+                        if abs((current_col_h + new_height) - target_height) < 5: # 误差5像素内修正
+                            new_height = target_height - current_col_h
+                    
+                    scaled_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                    col_imgs.append(scaled_img)
+                    current_col_h += new_height
+                
+                final_columns.append(col_imgs)
+            
+            # 6. 计算批次图区域尺寸
+            batch_area_width = sum(column_widths)
+            batch_area_height = target_height
+            
+            # 7. 计算画布尺寸
+            if arrangement_en in ["left_right", "top_left", "top_right"]:
+                canvas_width = base_width + spacing + batch_area_width
+                canvas_height = base_height
+            else:
+                canvas_width = max(base_width, batch_area_width)
+                canvas_height = base_height + spacing + batch_area_height
+            
+            # 8. 创建画布
+            bg_color = self.get_background_color(bg_color_en)
+            canvas = Image.new('RGB', (canvas_width, canvas_height), bg_color)
+            
+            # 9. 计算位置
+            if arrangement_en == "left_right":
+                base_x, base_y = 0, 0
+                batch_start_x = base_width + spacing
+                batch_start_y = 0
+            elif arrangement_en == "top_bottom":
+                base_x = (canvas_width - base_width) // 2
+                base_y = 0
+                batch_start_x = (canvas_width - batch_area_width) // 2
+                batch_start_y = base_height + spacing
+            elif arrangement_en == "top_left":
+                base_x, base_y = 0, 0
+                batch_start_x = base_width + spacing
+                batch_start_y = 0
+            elif arrangement_en == "top_right":
+                base_x = batch_area_width + spacing
+                base_y = 0
+                batch_start_x, batch_start_y = 0, 0
+            else:
+                base_x, base_y = 0, 0
+                batch_start_x = base_width + spacing
+                batch_start_y = 0
+            
+            # 10. 粘贴基准图
+            if add_border:
+                bordered_base = self.add_image_border(base_resized, border_color_en, border_width)
+                canvas.paste(bordered_base, (base_x, base_y))
+            else:
+                canvas.paste(base_resized, (base_x, base_y))
+            
+            # 11. 粘贴批次图片
+            current_col_x = batch_start_x
+            for col_idx in range(num_columns):
+                current_y = batch_start_y
+                
+                for img in final_columns[col_idx]:
+                    if add_border:
+                        bordered_img = self.add_image_border(img, border_color_en, border_width)
+                        canvas.paste(bordered_img, (current_col_x, current_y))
+                    else:
+                        canvas.paste(img, (current_col_x, current_y))
+                    current_y += img.height
+                
+                current_col_x += column_widths[col_idx]
+            
+            # 12. 转换回tensor
+            result_tensor = self.pil_to_tensor(canvas)
+            
+            # 13. 生成布局信息
+            source_info = f"文件夹({os.path.basename(folder_path)})" if use_folder else "输入端口"
+            total_images_per_col = [len(col) for col in final_columns]
+            layout_info = (
+                f"🎯 排列: {arrangement} | "
+                f"📐 布局: 瀑布流(自适应列宽) | "
+                f"📸 基准图: {base_width}×{base_height} | "
+                f"📊 瀑布流: {num_columns}列(宽度{column_widths}) | "
+                f"🖼️ 批次: {batch_count}张({source_info}) | "
+                f"📏 画布: {canvas_width}×{canvas_height}"
+            )
+            
+            total_images = 1 + batch_count
+            grid_size_value = int(sum(column_widths) / 3) # 近似值
+            
+            return (result_tensor, layout_info, total_images, grid_size_value)
+            
+        except Exception as e:
+            import traceback
+            error_msg = f"错误: {str(e)}\n{traceback.format_exc()}"
+            print(f"[ImageLayoutNode] 瀑布流布局失败: {error_msg}")
+            
+            error_img = Image.new('RGB', (800, 600), (255, 100, 100))
+            draw = ImageDraw.Draw(error_img)
+            draw.text((10, 10), f"❌ 瀑布流布局失败:\n{str(e)}", fill="white")
+            
+            error_tensor = self.pil_to_tensor(error_img)
+            return (error_tensor, f"❌ 错误: {str(e)}", 0, 0)
     
     def add_image_border(self, image, border_color, border_width):
         """
