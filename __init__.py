@@ -5,6 +5,7 @@ from .make_image_batch_node import MakeImageBatchNode
 from .image_aspect_ratio_node import ImageAspectRatioResizeNode
 from .image_pad_direction_node import DapaoImagePadDirectionNode
 from .prompt_brake_node import PromptBrakeNode
+from .realtime_image_adjust_node import DapaoRealtimeImageAdjustNode
 
 # 前端资源目录
 WEB_DIRECTORY = "./web"
@@ -17,6 +18,7 @@ NODE_CLASS_MAPPINGS = {
     "DapaoImageAspectRatioResizeNode": ImageAspectRatioResizeNode, # 按宽高比缩放节点
     "DapaoImagePadDirectionNode": DapaoImagePadDirectionNode, # 按方向外补画板
     "DapaoPromptBrakeNode": PromptBrakeNode,                # 提示词刹车节点
+    "DapaoRealtimeImageAdjustNode": DapaoRealtimeImageAdjustNode,     # 实时图像调整节点
 }
 
 # 节点显示名称映射
@@ -27,6 +29,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DapaoImageAspectRatioResizeNode": "按宽高比缩放 📐@炮老师的小课堂",
     "DapaoImagePadDirectionNode": "按方向外补画板 🖌️@炮老师的小课堂",
     "DapaoPromptBrakeNode": "提示词刹车🥝@炮老师的小课堂",
+    "DapaoRealtimeImageAdjustNode": "实时图像调整 🎨@炮老师的小课堂",
 }
 
 # 导出所有节点
