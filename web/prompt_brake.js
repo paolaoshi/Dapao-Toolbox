@@ -36,14 +36,16 @@ app.registerExtension({
 
                 // 1. 获取原有的 timeout 参数 widget (由 Python 定义)
                 // 尝试更宽泛的匹配，防止 emoji 编码问题
-                let timeoutWidget = this.widgets.find(w => w.name === "timeout" || w.name.includes("超时时间"));
+                let timeoutWidget = this.widgets && this.widgets.find(w => w.name === "timeout" || (w.name && w.name.includes("超时时间")));
 
                 // 2. 创建大文本框
                 const textWrapper = ComfyWidgets["STRING"](this, "text_content", ["STRING", { multiline: true }], app);
                 this.textWidget = textWrapper.widget;
-                this.textWidget.inputEl.readOnly = false;
-                this.textWidget.inputEl.style.height = "250px";
-                this.textWidget.inputEl.style.fontSize = "14px";
+                if (this.textWidget && this.textWidget.inputEl) {
+                    this.textWidget.inputEl.readOnly = false;
+                    this.textWidget.inputEl.style.height = "250px";
+                    this.textWidget.inputEl.style.fontSize = "14px";
+                }
 
                 // 3. 创建原生 DOM 按钮 (确保一定能显示)
                 const btn = document.createElement("button");
@@ -74,14 +76,21 @@ app.registerExtension({
                 });
 
                 // 4. 创建状态显示条
-                this.statusWidget = this.addWidget("text", "📜 运行状态", "💤 等待运行...", () => { }, { serialize: false });
-                this.statusWidget.inputEl.disabled = true;
-                this.statusWidget.inputEl.style.textAlign = "center";
-                this.statusWidget.inputEl.style.color = "#aaa";
+                const statusWrapper = ComfyWidgets["STRING"](this, "status_info", ["STRING", { multiline: false }], app);
+                this.statusWidget = statusWrapper.widget;
+                this.statusWidget.label = "📜 运行状态";
+                this.statusWidget.value = "💤 等待运行...";
+                this.statusWidget.serialize = false;
+
+                if (this.statusWidget && this.statusWidget.inputEl) {
+                    this.statusWidget.inputEl.disabled = true;
+                    this.statusWidget.inputEl.style.textAlign = "center";
+                    this.statusWidget.inputEl.style.color = "#aaa";
+                }
 
                 // 5. 调整 Widget 顺序
                 // 我们尝试把 Timeout 移动到 Status 下方
-                if (timeoutWidget) {
+                if (timeoutWidget && this.widgets) {
                     const idx = this.widgets.indexOf(timeoutWidget);
                     if (idx > -1) this.widgets.splice(idx, 1);
                 }
@@ -93,7 +102,7 @@ app.registerExtension({
                 if (this.textWidget) newWidgetsOrder.push(this.textWidget);
                 // domBtn 是通过 addDOMWidget 添加的，它也会在 widgets 列表里有一个占位 widget
                 // 我们找到它并放进来
-                const btnWidgetObj = this.widgets.find(w => w.element === btn);
+                const btnWidgetObj = this.widgets && this.widgets.find(w => w.element === btn);
                 if (btnWidgetObj) newWidgetsOrder.push(btnWidgetObj);
 
                 if (this.statusWidget) newWidgetsOrder.push(this.statusWidget);
@@ -119,8 +128,8 @@ app.registerExtension({
                     this.domBtn.textContent = "✅ 确认修改并继续 (GO!)";
                     this.domBtn.disabled = false;
                     this.domBtn.style.backgroundColor = "#2e7d32"; // 激活时变绿
-                    btn.onmouseenter = () => { if (!btn.disabled) btn.style.backgroundColor = "#388E3C"; };
-                    btn.onmouseleave = () => { if (!btn.disabled) btn.style.backgroundColor = "#2e7d32"; };
+                    this.domBtn.onmouseenter = () => { if (!this.domBtn.disabled) this.domBtn.style.backgroundColor = "#388E3C"; };
+                    this.domBtn.onmouseleave = () => { if (!this.domBtn.disabled) this.domBtn.style.backgroundColor = "#2e7d32"; };
                 }
 
                 if (this.statusWidget) {
