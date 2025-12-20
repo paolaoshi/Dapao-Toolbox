@@ -9,6 +9,7 @@ from .realtime_image_adjust_node import DapaoRealtimeImageAdjustNode
 from .image_grid_stitcher_v2_node import ImageGridStitcherV2Node
 from .dapao_batch_image_grid_node import DapaoBatchImageGrid
 from .dapao_load_folder_images_node import DapaoLoadFolderImages
+from .dapao_safe_save_image_node import DapaoSafeSaveImage
 
 # 前端资源目录
 WEB_DIRECTORY = "./web"
@@ -25,6 +26,7 @@ NODE_CLASS_MAPPINGS = {
     "DapaoImageGridStitcherV2Node": ImageGridStitcherV2Node,          # 图片网格拼接 V2
     "DapaoBatchImageGrid": DapaoBatchImageGrid,                       # 🐭批次图组合
     "DapaoLoadFolderImages": DapaoLoadFolderImages,                   # 🦁文件夹加载图像
+    "DapaoSafeSaveImage": DapaoSafeSaveImage,                         # 😶‍🌫️安全保存图像
 }
 
 # 节点显示名称映射
@@ -39,6 +41,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DapaoImageGridStitcherV2Node": "图片网格拼接 🧩@炮老师的小课堂",
     "DapaoBatchImageGrid": "🐭批次图组合@炮老师的小课堂",
     "DapaoLoadFolderImages": "🦁文件夹加载图像@炮老师的小课堂",
+    "DapaoSafeSaveImage": "😶‍🌫️安全保存图像@炮老师的小课堂",
 }
 
 # 导出所有节点
