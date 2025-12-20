@@ -82,26 +82,48 @@ class DapaoBatchImageGrid:
     RETURN_NAMES = ("🖼️ 拼接图像",)
     FUNCTION = "create_grid"
     CATEGORY = "🤖Dapao-Toolbox"
+    
+    # 启用列表输入模式，防止自动解包
+    INPUT_IS_LIST = True
 
     def create_grid(self, **kwargs):
         # 1. 解析输入
-        images = kwargs["🖼️ 图像批次"]
-        columns = kwargs["📊 列数"]
-        rows = kwargs["🧱 行数"]
-        width = kwargs["↔️ 单图宽度"]
-        height = kwargs["↕️ 单图高度"]
-        gap = kwargs["📏 间距"]
-        crop_mode = kwargs["✂️ 裁剪模式"]
-        bg_type = kwargs["🎨 背景类型"]
-        bg_color = kwargs["🎨 背景颜色"]
-        max_side = kwargs["📏 限制最长边"]
+        # 由于 INPUT_IS_LIST = True，所有参数都会变成 list
+        # 对于普通参数，我们取第一个值
+        columns = kwargs["📊 列数"][0]
+        rows = kwargs["🧱 行数"][0]
+        width = kwargs["↔️ 单图宽度"][0]
+        height = kwargs["↕️ 单图高度"][0]
+        gap = kwargs["📏 间距"][0]
+        crop_mode = kwargs["✂️ 裁剪模式"][0]
+        bg_type = kwargs["🎨 背景类型"][0]
+        bg_color = kwargs["🎨 背景颜色"][0]
+        max_side = kwargs["📏 限制最长边"][0]
 
-        if images is None or len(images) == 0:
+        # 2. 处理图像列表
+        # images 可能是 [Tensor(B,H,W,C), Tensor(B,H,W,C), ...] 
+        # 我们需要把它们全部收集起来
+        raw_images = kwargs["🖼️ 图像批次"]
+        if raw_images is None or len(raw_images) == 0:
             raise ValueError("❌ 错误：输入图像批次为空")
-            
-        batch_size, img_h, img_w, _ = images.shape
+
+        all_images = []
+        for img_batch in raw_images:
+            # img_batch 是 Tensor [B, H, W, C]
+            for i in range(img_batch.shape[0]):
+                all_images.append(img_batch[i]) # 取出单张 Tensor [H, W, C]
         
-        # 2. 确定目标尺寸
+        if not all_images:
+            raise ValueError("❌ 错误：未能提取到有效图像")
+            
+        # 不进行 stack，因为尺寸可能不一致
+        # images = torch.stack(all_images) # REMOVED
+        
+        batch_size = len(all_images)
+        # 使用第一张图的尺寸作为默认参考
+        img_h, img_w, _ = all_images[0].shape
+        
+        # 3. 确定目标尺寸
         target_w = width if width > 0 else img_w
         target_h = height if height > 0 else img_h
         
@@ -149,7 +171,7 @@ class DapaoBatchImageGrid:
         canvas = Image.new(mode, (canvas_w, canvas_h), color)
         
         # 5. 逐张处理并粘贴
-        for idx, img_tensor in enumerate(images):
+        for idx, img_tensor in enumerate(all_images):
             # 超过网格容量的图片将被忽略（如果 rows 限制了总数且 cols 也固定... 但上面的逻辑 needed_rows 保证了能装下）
             # 除非 columns=0, rows>0 且 batch_size > rows*cols? 
             # 比如 rows=2, batch=5 -> cols=3 -> 2*3=6 > 5. OK.
