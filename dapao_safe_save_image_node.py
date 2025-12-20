@@ -26,11 +26,11 @@ class DapaoSafeSaveImage:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "images": ("IMAGE", {"tooltip": "需要保存的图像批次"}),
-                "filename_prefix": ("STRING", {"default": "Safe_Image", "tooltip": "文件名前缀"}),
-                "format": (["PNG", "JPG", "WEBP"], {"default": "PNG", "tooltip": "保存的文件格式"}),
-                "quality": ("INT", {"default": 100, "min": 1, "max": 100, "step": 1, "tooltip": "图片质量 (1-100)，对 JPG/WEBP 有效"}),
-                "remove_metadata": ("BOOLEAN", {"default": True, "label_on": "开启隐私保护 (移除元数据)", "label_off": "关闭 (保留元数据)", "tooltip": "是否移除图像中的工作流信息和生成参数"}),
+                "🖼️ 图像": ("IMAGE", {"tooltip": "需要保存的图像批次"}),
+                "📄 文件名前缀": ("STRING", {"default": "dapao", "tooltip": "文件名前缀"}),
+                "💾 格式": (["PNG", "JPG", "WEBP"], {"default": "PNG", "tooltip": "保存的文件格式"}),
+                "📉 质量": ("INT", {"default": 100, "min": 1, "max": 100, "step": 1, "tooltip": "图片质量 (1-100)，对 JPG/WEBP 有效"}),
+                "😶‍🌫️ 移除元数据": ("BOOLEAN", {"default": True, "label_on": "开启隐私保护 (移除元数据)", "label_off": "关闭 (保留元数据)", "tooltip": "是否移除图像中的工作流信息和生成参数"}),
             },
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
         }
@@ -40,7 +40,16 @@ class DapaoSafeSaveImage:
     OUTPUT_NODE = True
     CATEGORY = "🤖Dapao-Toolbox"
 
-    def save_images(self, images, filename_prefix="Safe_Image", format="PNG", quality=100, remove_metadata=True, prompt=None, extra_pnginfo=None):
+    def save_images(self, **kwargs):
+        # 参数映射
+        images = kwargs.get("🖼️ 图像")
+        filename_prefix = kwargs.get("📄 文件名前缀", "dapao")
+        format = kwargs.get("💾 格式", "PNG")
+        quality = kwargs.get("📉 质量", 100)
+        remove_metadata = kwargs.get("😶‍🌫️ 移除元数据", True)
+        prompt = kwargs.get("prompt", None)
+        extra_pnginfo = kwargs.get("extra_pnginfo", None)
+
         filename_prefix += self.prefix_append
         full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, self.output_dir, images[0].shape[1], images[0].shape[0])
         results = list()
