@@ -37,6 +37,11 @@ class DapaoSavePSD:
         images = kwargs.get("🖼️ 图像列表")
         filename_prefix = kwargs.get("📄 文件名前缀", "dapao_psd")
         
+        # When INPUT_IS_LIST is True, all inputs are lists.
+        # Ensure filename_prefix is a string.
+        if isinstance(filename_prefix, list):
+            filename_prefix = filename_prefix[0]
+
         if not PYTOSHOP_AVAILABLE:
             raise ImportError("DapaoSavePSD: pytoshop module not found. Please run 'pip install pytoshop' in your ComfyUI python environment.")
             
