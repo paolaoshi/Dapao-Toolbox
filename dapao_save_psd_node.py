@@ -25,6 +25,9 @@ class DapaoSavePSD:
                 "🖼️ 图像列表": ("IMAGE", {"tooltip": "需要保存的图像批次或列表"}),
                 "📄 文件名前缀": ("STRING", {"default": "dapao_psd", "tooltip": "文件名前缀"}),
             },
+            "optional": {
+                "📂 自定义路径": ("STRING", {"default": "", "tooltip": "自定义保存路径，留空则使用默认路径"}),
+            },
         }
 
     RETURN_TYPES = ()
@@ -36,11 +39,20 @@ class DapaoSavePSD:
     def save_psd(self, **kwargs):
         images = kwargs.get("🖼️ 图像列表")
         filename_prefix = kwargs.get("📄 文件名前缀", "dapao_psd")
+        custom_path_raw = kwargs.get("📂 自定义路径", "")
         
         # When INPUT_IS_LIST is True, all inputs are lists.
         # Ensure filename_prefix is a string.
         if isinstance(filename_prefix, list):
             filename_prefix = filename_prefix[0]
+            
+        # Ensure custom_path is a string
+        custom_path = ""
+        if isinstance(custom_path_raw, list):
+            if len(custom_path_raw) > 0:
+                custom_path = str(custom_path_raw[0]).strip()
+        elif isinstance(custom_path_raw, str):
+            custom_path = custom_path_raw.strip()
 
         if not PYTOSHOP_AVAILABLE:
             raise ImportError("DapaoSavePSD: pytoshop module not found. Please run 'pip install pytoshop' in your ComfyUI python environment.")
@@ -50,15 +62,25 @@ class DapaoSavePSD:
 
         # 1. Flatten images to PIL list
         pil_images = []
-        for img_item in images:
-            if isinstance(img_item, torch.Tensor):
-                # Handle batch [B, H, W, C]
-                if img_item.dim() == 4:
-                    for i in range(img_item.shape[0]):
-                        pil_images.append(self.tensor_to_pil(img_item[i]))
+        
+        # Helper function to process single item
+        def process_item(item):
+            if isinstance(item, torch.Tensor):
+                 # Handle batch [B, H, W, C]
+                if item.dim() == 4:
+                    for i in range(item.shape[0]):
+                        pil_images.append(self.tensor_to_pil(item[i]))
                 # Handle single [H, W, C]
-                elif img_item.dim() == 3:
-                    pil_images.append(self.tensor_to_pil(img_item))
+                elif item.dim() == 3:
+                    pil_images.append(self.tensor_to_pil(item))
+        
+        # Check if input is a list (from INPUT_IS_LIST=True)
+        if isinstance(images, list):
+            for img_item in images:
+                process_item(img_item)
+        else:
+            # Fallback if somehow it's not a list
+            process_item(images)
         
         if not pil_images:
             print("DapaoSavePSD: No images to save.")
@@ -100,8 +122,16 @@ class DapaoSavePSD:
             layers_list.append(layer)
             
         # 4. Prepare save path
+        base_output_dir = self.output_dir
+        if custom_path:
+            try:
+                os.makedirs(custom_path, exist_ok=True)
+                base_output_dir = custom_path
+            except Exception as e:
+                print(f"Error creating custom path '{custom_path}', falling back to default. Error: {e}")
+
         full_output_folder, filename, counter, subfolder, filename_prefix = \
-            folder_paths.get_save_image_path(filename_prefix, self.output_dir, max_w, max_h)
+            folder_paths.get_save_image_path(filename_prefix, base_output_dir, max_w, max_h)
             
         file_name = f"{filename}_{counter:05}_.psd"
         file_path = os.path.join(full_output_folder, file_name)
