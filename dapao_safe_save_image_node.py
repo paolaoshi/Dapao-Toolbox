@@ -5,6 +5,8 @@ from PIL import Image
 from PIL.PngImagePlugin import PngInfo
 import folder_paths
 import torch
+import random
+import string
 
 class DapaoSafeSaveImage:
     """
@@ -32,6 +34,9 @@ class DapaoSafeSaveImage:
                 "📉 质量": ("INT", {"default": 100, "min": 1, "max": 100, "step": 1, "tooltip": "图片质量 (1-100)，对 JPG/WEBP 有效"}),
                 "😶‍🌫️ 移除元数据": ("BOOLEAN", {"default": True, "label_on": "开启隐私保护 (移除元数据)", "label_off": "关闭 (保留元数据)", "tooltip": "是否移除图像中的工作流信息和生成参数"}),
             },
+            "optional": {
+                "📂 自定义路径": ("STRING", {"default": "", "tooltip": "自定义保存路径，留空则使用默认路径"}),
+            },
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
         }
 
@@ -47,11 +52,22 @@ class DapaoSafeSaveImage:
         format = kwargs.get("💾 格式", "PNG")
         quality = kwargs.get("📉 质量", 100)
         remove_metadata = kwargs.get("😶‍🌫️ 移除元数据", True)
+        custom_path = kwargs.get("📂 自定义路径", "").strip()
         prompt = kwargs.get("prompt", None)
         extra_pnginfo = kwargs.get("extra_pnginfo", None)
 
         filename_prefix += self.prefix_append
-        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, self.output_dir, images[0].shape[1], images[0].shape[0])
+        
+        # 确定基础保存路径
+        base_output_dir = self.output_dir
+        if custom_path:
+            try:
+                os.makedirs(custom_path, exist_ok=True)
+                base_output_dir = custom_path
+            except Exception as e:
+                print(f"Error creating custom path '{custom_path}', falling back to default. Error: {e}")
+
+        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, base_output_dir, images[0].shape[1], images[0].shape[0])
         results = list()
         
         # 确定文件扩展名
@@ -105,11 +121,38 @@ class DapaoSafeSaveImage:
             except Exception as e:
                 print(f"Error saving image: {e}")
                 
-            results.append({
+            # 标准返回结果
+            results_item = {
                 "filename": file,
                 "subfolder": subfolder,
                 "type": self.type
-            })
+            }
+
+            # 如果使用了自定义路径，为了能在前端预览，我们需要额外保存一份副本到 ComfyUI 的 temp 目录
+            if custom_path:
+                try:
+                    # 获取临时目录
+                    temp_dir = folder_paths.get_temp_directory()
+                    
+                    # 生成随机文件名，避免缓存冲突
+                    random_suffix = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+                    temp_filename = f"dapao_preview_{random_suffix}.{extension}"
+                    
+                    # 保存临时文件（始终移除 metadata 以减小体积和保护隐私，且仅作为预览）
+                    # 注意：预览图强制转为 WebP 或 JPG 以节省带宽，或者保持原格式
+                    # 这里为了简单，直接保存一份原图
+                    img.save(os.path.join(temp_dir, temp_filename), **save_kwargs)
+                    
+                    # 更新返回给前端的预览信息指向临时文件
+                    results_item = {
+                        "filename": temp_filename,
+                        "subfolder": "",
+                        "type": "temp"
+                    }
+                except Exception as e:
+                    print(f"Error saving preview image to temp: {e}")
+            
+            results.append(results_item)
             counter += 1
 
         return { "ui": { "images": results } }
