@@ -12,6 +12,7 @@ from .dapao_load_folder_images_node import DapaoLoadFolderImages
 from .dapao_safe_save_image_node import DapaoSafeSaveImage
 from .dapao_save_psd_node import DapaoSavePSD
 from .dapao_image_ratio_limit_node import DapaoImageRatioLimitNode
+from .dapao_batch_image_resize_node import DapaoBatchImageResize
 
 # 前端资源目录
 WEB_DIRECTORY = "./web"
@@ -31,6 +32,7 @@ NODE_CLASS_MAPPINGS = {
     "DapaoSafeSaveImage": DapaoSafeSaveImage,                         # 😶‍🌫️安全保存图像
     "DapaoSavePSD": DapaoSavePSD,                                     # 🐋保存为PSD
     "DapaoImageRatioLimitNode": DapaoImageRatioLimitNode,             # 🫎图像比尺寸限定
+    "DapaoBatchImageResize": DapaoBatchImageResize,                   # 🐣批量文件尺寸修改
 }
 
 # 节点显示名称映射
@@ -48,6 +50,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DapaoSafeSaveImage": "😶‍🌫️安全保存图像@炮老师的小课堂",
     "DapaoSavePSD": "🐋保存为PSD@炮老师的小课堂",
     "DapaoImageRatioLimitNode": "🫎图像比尺寸限定@炮老师的小课堂",
+    "DapaoBatchImageResize": "🐣批量文件尺寸修改@炮老师的小课堂",
 }
 
 # 导出所有节点
