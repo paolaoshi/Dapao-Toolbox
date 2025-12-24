@@ -41,6 +41,9 @@ app.registerExtension({
                 // 2. 创建大文本框
                 const textWrapper = ComfyWidgets["STRING"](this, "text_content", ["STRING", { multiline: true }], app);
                 this.textWidget = textWrapper.widget;
+                // 关键修复：禁止序列化文本框，防止在复制节点或保存工作流时与 Timeout 参数发生值错位（导致 Timeout 变为 0）
+                this.textWidget.serialize = false;
+                
                 if (this.textWidget && this.textWidget.inputEl) {
                     this.textWidget.inputEl.readOnly = false;
                     this.textWidget.inputEl.style.height = "250px";
