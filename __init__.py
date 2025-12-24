@@ -42,7 +42,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DapaoMakeImageBatchNode": "制作图像批次 📦@炮老师的小课堂",
     "DapaoImageAspectRatioResizeNode": "按宽高比缩放 📐@炮老师的小课堂",
     "DapaoImagePadDirectionNode": "按方向外补画板 🖌️@炮老师的小课堂",
-    "DapaoPromptBrakeNode": "提示词刹车🥝@炮老师的小课堂",
+    "DapaoPromptBrakeNode": "🦭提示词刹车@炮老师的小课堂",
     "DapaoRealtimeImageAdjustNode": "实时图像调整 🎨@炮老师的小课堂",
     "DapaoImageGridStitcherV2Node": "图片网格拼接 🧩@炮老师的小课堂",
     "DapaoBatchImageGrid": "🐭批次图组合@炮老师的小课堂",

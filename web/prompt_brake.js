@@ -118,6 +118,61 @@ app.registerExtension({
 
                 return r;
             };
+            
+            // 运行时数值守护：每帧检查参数合法性，防止因复制/加载导致的数值归零
+            const onDrawForeground = nodeType.prototype.onDrawForeground;
+            nodeType.prototype.onDrawForeground = function(ctx) {
+                if (onDrawForeground) onDrawForeground.apply(this, arguments);
+                
+                if (this.widgets) {
+                    // 增强查找逻辑：不完全依赖名称，而是查找所有数字类型且有最小值的 widget
+                    // 优先匹配名称包含"超时"或 name 为 "timeout" 的
+                    let timeoutWidget = this.widgets.find(w => w.name === "timeout" || (w.name && w.name.includes("超时时间")));
+                    
+                    // 如果找不到，尝试找任何有 min 属性且 type 为 number 的 widget
+                    if (!timeoutWidget) {
+                        timeoutWidget = this.widgets.find(w => w.type === "number" || w.type === "INT" || (w.options && w.options.min === 5));
+                    }
+
+                    if (timeoutWidget) {
+                        // 强制修正逻辑：只要值不合法（不是数字、小于5、是0、是null/undefined），统统重置
+                        const val = timeoutWidget.value;
+                        const isInvalid = (typeof val !== 'number') || (val < 5);
+                        
+                        if (isInvalid) {
+                            // console.log("Fixing timeout value:", val); // 调试用
+                            timeoutWidget.value = 60;
+                        }
+                    }
+                }
+            };
+
+            // 在 onConfigure 时也执行一次强力修正
+            const onConfigure = nodeType.prototype.onConfigure;
+            nodeType.prototype.onConfigure = function() {
+                if (onConfigure) onConfigure.apply(this, arguments);
+                
+                // 此时 widgets 可能还没完全准备好，但在 configure 结束时应该有了
+                // 我们延时一帧再检查，或者直接检查（如果有的话）
+                if (this.widgets) {
+                     let timeoutWidget = this.widgets.find(w => w.name === "timeout" || (w.name && w.name.includes("超时时间")));
+                     if (!timeoutWidget) {
+                        timeoutWidget = this.widgets.find(w => w.type === "number" || w.type === "INT" || (w.options && w.options.min === 5));
+                     }
+                     
+                     if (timeoutWidget) {
+                        const val = timeoutWidget.value;
+                        // 这里对 configure 阶段的数据稍微宽容一点，如果是字符串形式的数字，尝试转一下
+                        if (typeof val === 'string' && !isNaN(parseFloat(val))) {
+                            timeoutWidget.value = parseFloat(val);
+                        }
+                        
+                        if ((typeof timeoutWidget.value !== 'number') || (timeoutWidget.value < 5)) {
+                             timeoutWidget.value = 60;
+                        }
+                     }
+                }
+            };
 
             nodeType.prototype.onBrakeStart = function (text, timeout) {
                 this.brakeState.active = true;
