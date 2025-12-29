@@ -9,8 +9,8 @@ class DapaoImageRatioLimitNode:
     
     @classmethod
     def INPUT_TYPES(cls):
-        # 生成 0.1 到 2.5 的百万像素选项，步长 0.1
-        megapixel_options = [f"{i/10:.1f}" for i in range(1, 26)]
+        # 生成 0.1 到 5.0 的百万像素选项，步长 0.1
+        megapixel_options = [f"{i/10:.1f}" for i in range(1, 51)]
         
         return {
             "required": {
