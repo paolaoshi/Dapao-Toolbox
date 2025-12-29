@@ -15,6 +15,7 @@ from .dapao_image_ratio_limit_node import DapaoImageRatioLimitNode
 from .dapao_batch_image_resize_node import DapaoBatchImageResize
 from .dapao_image_compression_node import DapaoImageCompressionNode
 from .dapao_random_prompt_line_extract_node import DapaoRandomPromptLineExtractNode
+from .dapao_random_prompt_line_combine_node import DapaoRandomPromptLineCombineNode
 
 # 前端资源目录
 WEB_DIRECTORY = "./web"
@@ -37,6 +38,7 @@ NODE_CLASS_MAPPINGS = {
     "DapaoBatchImageResize": DapaoBatchImageResize,                   # 🐣批量文件尺寸修改
     "DapaoImageCompressionNode": DapaoImageCompressionNode,           # 🦖画质无损压缩
     "DapaoRandomPromptLineExtractNode": DapaoRandomPromptLineExtractNode,
+    "DapaoRandomPromptLineCombineNode": DapaoRandomPromptLineCombineNode,
 }
 
 # 节点显示名称映射
@@ -57,6 +59,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DapaoBatchImageResize": "🐣批量文件尺寸修改@炮老师的小课堂",
     "DapaoImageCompressionNode": "🦖画质无损压缩@炮老师的小课堂",
     "DapaoRandomPromptLineExtractNode": "🐧随机提示词行提取@炮老师的小课堂",
+    "DapaoRandomPromptLineCombineNode": "🐧随机提示词行组合@炮老师的小课堂",
 }
 
 # 导出所有节点
