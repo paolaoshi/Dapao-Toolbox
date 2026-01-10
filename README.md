@@ -3,7 +3,9 @@
 ComfyUI自定义节点工具箱 - 由炮老师的小课堂出品
 
 ## 📦 节点列表
-
+- ✨增加显存内存自动优化节点，运行之前先运行一次此节点，能有效释放显存内存，避免后续节点运行失败。
+![alt text](image-2.png)
+参考原项目：https://github.com/Windecay/ComfyUI-ReservedVRAM?tab=readme-ov-file
 ### 🔢 多图片开关节点
 
 **功能特点：**
