@@ -101,16 +101,101 @@ class DapaoSmartMemoryOptimizerNode:
         if hasattr(dev, "type") and dev.type not in ("cpu", "mps"):
             try:
                 vram_total = int(model_management.get_total_memory(dev))
-                vram_free = int(model_management.get_free_memory(dev))
+                # 获取更详细的内存信息：Total_Free = OS_Free + Torch_Reserved_Free
+                mem_free_total, mem_free_torch = model_management.get_free_memory(dev, torch_free_too=True)
+                # 计算真实的 OS 层面剩余显存（Task Manager 看到的空闲）
+                os_free = mem_free_total - mem_free_torch
             except Exception:
                 vram_total = 0
-                vram_free = 0
+                mem_free_total = 0
+                os_free = 0
+
+            reserved_bytes = int(getattr(model_management, "EXTRA_RESERVED_VRAM", 0))
+            
+            # 策略升级：双重检查
+            # 1. 检查 Torch 自身占用是否越界 (Self-Discipline)
+            #    如果 (Torch已占用 + 预留) > 总显存，说明 ComfyUI 占用了本该预留的空间，必须吐出来
+            torch_reserved_bytes = 0
+            try:
+                torch_reserved_bytes = torch.cuda.memory_reserved(dev)
+            except:
+                pass
+            
+            # 2. 检查系统层面是否真的拥挤 (System Pressure)
+            #    虽然 os_free 有时虚高，但如果它真的很低，那肯定要卸载
+            
+            should_unload_reserved = False
+            
+            # 判定 A: Torch 自身占用过高
+            if reserved_bytes > 0 and vram_total > 0:
+                max_allowed_torch = vram_total - reserved_bytes
+                if torch_reserved_bytes > max_allowed_torch:
+                    should_unload_reserved = True
+            
+            # 判定 B: 系统剩余显存不足 (辅助判断)
+            if reserved_bytes > 0 and os_free < reserved_bytes:
+                should_unload_reserved = True
+                
+            if should_unload_reserved:
+                # 1. 先尝试轻量级清空
+                torch.cuda.empty_cache()
+                torch.cuda.ipc_collect()
+                
+                # 重新检查
+                try:
+                    torch_reserved_bytes = torch.cuda.memory_reserved(dev)
+                    mem_free_total, mem_free_torch = model_management.get_free_memory(dev, torch_free_too=True)
+                    os_free = mem_free_total - mem_free_torch
+                except:
+                    pass
+                    
+                # 再次确认是否还需要卸载模型
+                still_need_unload = False
+                if vram_total > 0 and torch_reserved_bytes > (vram_total - reserved_bytes):
+                    still_need_unload = True
+                if os_free < reserved_bytes:
+                    still_need_unload = True
+                    
+                if still_need_unload:
+                    # 计算需要释放多少：
+                    # 目标是让 torch_reserved <= (vram_total - reserved_bytes)
+                    # 或者 os_free >= reserved_bytes
+                    # 这里直接给一个足够大的值让 ComfyUI 尽力释放，或者按差值释放
+                    # 为了保险，直接尝试释放预留的大小，或者更多
+                    
+                    target_free = reserved_bytes
+                    # 如果是因为 Torch 占太多，算出超额部分
+                    if vram_total > 0:
+                        excess = torch_reserved_bytes - (vram_total - reserved_bytes)
+                        if excess > 0:
+                            target_free = max(target_free, excess)
+                    
+                    model_management.free_memory(target_free, dev)
+                    torch.cuda.empty_cache()
+                    torch.cuda.ipc_collect()
+                    actions.append("按预留卸载模型")
+                    
+                    # 更新状态
+                    try:
+                        mem_free_total, mem_free_torch = model_management.get_free_memory(dev, torch_free_too=True)
+                        torch_reserved_bytes = torch.cuda.memory_reserved(dev)
+                    except:
+                        pass
 
             if min_vram_gb > 0:
                 need_free = int(min_vram_gb * (1024**3))
-                if vram_free < need_free:
-                    model_management.free_memory(need_free, dev)
-                    model_management.soft_empty_cache()
+                # 逻辑可用显存 = 总显存 - Torch占用 - 预留
+                # 或者 = mem_free_total - reserved_bytes (ComfyUI视角)
+                # 为了更安全，我们用更保守的计算：
+                # 假设 Torch 还能申请到的最大值是 (vram_total - reserved_bytes - torch_reserved_bytes)
+                # 但 mem_free_total 已经包含了 torch_reserved 里未使用的部分
+                # 所以还是用 mem_free_total - reserved_bytes 比较符合 ComfyUI 定义
+                
+                vram_free_effective = max(0, mem_free_total - reserved_bytes)
+                if vram_free_effective < need_free:
+                    # 需要腾出 (need_free + reserved_bytes) 才能保证安全
+                    model_management.free_memory(need_free + reserved_bytes, dev)
+                    torch.cuda.empty_cache()
                     actions.append("低显存卸载模型")
 
         if force_gc and not unload_on_low_ram:
@@ -121,18 +206,38 @@ class DapaoSmartMemoryOptimizerNode:
         ram_avail2 = int(vm2.available)
         if hasattr(dev, "type") and dev.type not in ("cpu", "mps"):
             try:
-                vram_free2 = int(model_management.get_free_memory(dev))
+                reserved_bytes2 = int(getattr(model_management, "EXTRA_RESERVED_VRAM", 0))
+                mem_free_total2, mem_free_torch2 = model_management.get_free_memory(dev, torch_free_too=True)
+                os_free2 = mem_free_total2 - mem_free_torch2
+                torch_reserved2 = torch.cuda.memory_reserved(dev)
+                
+                # VRAM可用(逻辑)：ComfyUI 还能用多少 (扣除预留)
+                vram_free_logical = max(0, mem_free_total2 - reserved_bytes2)
+                
+                # Torch占用：当前 Torch 实际申请了多少
+                torch_usage_str = self._format_bytes(torch_reserved2)
+                
             except Exception:
-                vram_free2 = 0
+                mem_free_total2 = 0
+                os_free2 = 0
+                vram_free_logical = 0
+                torch_reserved2 = 0
+                torch_usage_str = "0"
         else:
-            vram_free2 = 0
-
+            mem_free_total2 = 0
+            os_free2 = 0
+            vram_free_logical = 0
+            torch_reserved2 = 0
+            torch_usage_str = "0"
+  
         action_text = "；".join(actions) if actions else "无"
         info = (
             f"动作={action_text} | 设备={dev} | "
             f"RAM可用={self._format_bytes(ram_avail2)}/{self._format_bytes(ram_total)} | "
-            f"VRAM可用={self._format_bytes(vram_free2)}/{self._format_bytes(vram_total)} | "
-            f"预留显存={self._format_bytes(int(model_management.EXTRA_RESERVED_VRAM))}"
+            f"VRAM可用(逻辑)={self._format_bytes(vram_free_logical)} | "
+            f"系统剩余={self._format_bytes(os_free2)} | "
+            f"Torch占用={torch_usage_str} | "
+            f"预留设置={self._format_bytes(int(model_management.EXTRA_RESERVED_VRAM))}"
         )
         if unique_id is not None:
             from server import PromptServer
