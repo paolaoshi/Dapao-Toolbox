@@ -18,6 +18,9 @@ from .dapao_random_prompt_line_extract_node import DapaoRandomPromptLineExtractN
 from .dapao_random_prompt_line_combine_node import DapaoRandomPromptLineCombineNode
 from .dapao_smart_memory_optimizer_node import DapaoSmartMemoryOptimizerNode
 from .dapao_image_color_box_node import DapaoImageColorBoxNode
+from .dapao_image_split_node import DapaoImageSplitNode
+from .dapao_image_unpack_node import DapaoImageUnpackNode
+from .dapao_image_watermark_node import DapaoImageWatermarkNode
 
 # 前端资源目录
 WEB_DIRECTORY = "./web"
@@ -43,6 +46,9 @@ NODE_CLASS_MAPPINGS = {
     "DapaoRandomPromptLineCombineNode": DapaoRandomPromptLineCombineNode,
     "DapaoSmartMemoryOptimizerNode": DapaoSmartMemoryOptimizerNode,
     "DapaoImageColorBoxNode": DapaoImageColorBoxNode,               # 🐭图像分色框选
+    "DapaoImageSplitNode": DapaoImageSplitNode,                     # 🐅图像分割
+    "DapaoImageUnpackNode": DapaoImageUnpackNode,                   # 🐬图像拆分
+    "DapaoImageWatermarkNode": DapaoImageWatermarkNode,             # 🐥图像水印
 }
 
 # 节点显示名称映射
@@ -66,6 +72,9 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DapaoRandomPromptLineCombineNode": "🐧随机提示词行组合@炮老师的小课堂",
     "DapaoSmartMemoryOptimizerNode": "🐙显存丨内存智能优化@炮老师的小课堂",
     "DapaoImageColorBoxNode": "🐭图像分色框选@炮老师的小课堂",
+    "DapaoImageSplitNode": "🐅图像分割@炮老师的小课堂",
+    "DapaoImageUnpackNode": "🐬图像拆分@炮老师的小课堂",
+    "DapaoImageWatermarkNode": "🐥图像水印@炮老师的小课堂",
 }
 
 # 导出所有节点
