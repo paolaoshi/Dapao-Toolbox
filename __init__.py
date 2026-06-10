@@ -16,6 +16,7 @@ from .dapao_batch_image_resize_node import DapaoBatchImageResize
 from .dapao_image_compression_node import DapaoImageCompressionNode
 from .dapao_random_prompt_line_extract_node import DapaoRandomPromptLineExtractNode
 from .dapao_random_prompt_line_combine_node import DapaoRandomPromptLineCombineNode
+from .dapao_prompt_line_repeat_node import DapaoPromptLineRepeatNode
 from .dapao_smart_memory_optimizer_node import DapaoSmartMemoryOptimizerNode
 from .dapao_image_color_box_node import DapaoImageColorBoxNode
 from .dapao_image_split_node import DapaoImageSplitNode
@@ -44,6 +45,7 @@ NODE_CLASS_MAPPINGS = {
     "DapaoImageCompressionNode": DapaoImageCompressionNode,           # 🦖画质无损压缩
     "DapaoRandomPromptLineExtractNode": DapaoRandomPromptLineExtractNode,
     "DapaoRandomPromptLineCombineNode": DapaoRandomPromptLineCombineNode,
+    "DapaoPromptLineRepeatNode": DapaoPromptLineRepeatNode,
     "DapaoSmartMemoryOptimizerNode": DapaoSmartMemoryOptimizerNode,
     "DapaoImageColorBoxNode": DapaoImageColorBoxNode,               # 🐭图像分色框选
     "DapaoImageSplitNode": DapaoImageSplitNode,                     # 🐅图像分割
@@ -70,6 +72,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DapaoImageCompressionNode": "🦖画质无损压缩@炮老师的小课堂",
     "DapaoRandomPromptLineExtractNode": "🐧随机提示词行提取@炮老师的小课堂",
     "DapaoRandomPromptLineCombineNode": "🐧随机提示词行组合@炮老师的小课堂",
+    "DapaoPromptLineRepeatNode": "🐧提示词行复制@炮老师的小课堂",
     "DapaoSmartMemoryOptimizerNode": "🐙显存丨内存智能优化@炮老师的小课堂",
     "DapaoImageColorBoxNode": "🐭图像分色框选@炮老师的小课堂",
     "DapaoImageSplitNode": "🐅图像分割@炮老师的小课堂",
