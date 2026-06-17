@@ -12,7 +12,7 @@ class DapaoLoadFolderImages:
     - 支持排序、数量限制、起始索引
     - 智能批次尺寸统一（支持按首图或指定尺寸）
     - 支持限制最长边（优化显存）
-    - 灵活的适配模式（裁剪/填充/拉伸）
+    - 灵活的适配模式（默认/裁剪/填充/拉伸）
     """
     
     @classmethod
@@ -27,13 +27,14 @@ class DapaoLoadFolderImages:
                 "↔️ 指定宽度": ("INT", {"default": 512, "min": 64, "max": 8192, "step": 8, "tooltip": "仅在选择'指定固定尺寸'时生效"}),
                 "↕️ 指定高度": ("INT", {"default": 512, "min": 64, "max": 8192, "step": 8, "tooltip": "仅在选择'指定固定尺寸'时生效"}),
                 "📏 限制最长边": ("INT", {"default": 0, "min": 0, "max": 16384, "step": 64, "tooltip": "预处理：将图片最长边限制在指定像素内（0不限制）。对'统一为首图尺寸'模式有效，可减小显存占用"}),
-                "🛠️ 适配模式": (["保持比例-填充黑边", "保持比例-居中裁剪", "拉伸"], {"default": "保持比例-填充黑边", "tooltip": "当图片尺寸与目标批次尺寸不一致时的处理方式"}),
+                "🛠️ 适配模式": (["默认", "保持比例-填充黑边", "保持比例-居中裁剪", "拉伸"], {"default": "默认", "tooltip": "默认模式不改变原图；其他模式会统一到目标批次尺寸"}),
                 "🎨 填充颜色": ("STRING", {"default": "#000000", "tooltip": "填充黑边时的背景颜色（Hex格式）"}),
             }
         }
 
-    RETURN_TYPES = ("IMAGE", "INT", "STRING")
-    RETURN_NAMES = ("🖼️ 图像批次", "🔢 数量", "📂 文件名列表")
+    RETURN_TYPES = ("IMAGE", "IMAGE", "INT", "STRING")
+    RETURN_NAMES = ("🖼️ 图像批次", "🖼️ 图像列表", "🔢 数量", "📂 文件名列表")
+    OUTPUT_IS_LIST = (False, True, False, False)
     FUNCTION = "load_images"
     CATEGORY = "🤖Dapao-Toolbox"
 
@@ -90,12 +91,14 @@ class DapaoLoadFolderImages:
             print("⚠️ 警告：经过筛选后没有图片可加载")
             # 返回一个空的 1x1 黑色图像以防报错
             empty = torch.zeros((1, 1, 1, 3), dtype=torch.float32)
-            return (empty, 0, [])
+            return (empty, [empty], 0, [])
 
-        # 5. 确定目标尺寸
+        # 5. 确定目标尺寸。默认模式保留原图尺寸，不使用目标尺寸处理。
         target_w, target_h = 0, 0
         
-        if size_rule == "指定固定尺寸":
+        if fit_mode == "默认":
+            target_w, target_h = None, None
+        elif size_rule == "指定固定尺寸":
             target_w, target_h = fixed_w, fixed_h
         else:
             # 读取第一张图作为基准
@@ -159,12 +162,36 @@ class DapaoLoadFolderImages:
         if not image_list:
              raise ValueError("❌ 错误：所有图片处理失败")
 
-        # 堆叠批次
-        output_images = torch.stack(image_list, dim=0) # [B, H, W, C]
+        image_output_list = [img.unsqueeze(0) for img in image_list]
+        try:
+            output_images = torch.stack(image_list, dim=0) # [B, H, W, C]
+        except RuntimeError:
+            if fit_mode != "默认":
+                raise
+            output_images = self.pad_images_to_max_size(image_list, pad_color)
+            print("⚠️ 默认模式检测到图片尺寸不一致：图像列表输出保留原图尺寸，图像批次输出已补边到最大尺寸以便组成批次。")
         
-        return (output_images, len(image_list), filename_list)
+        return (output_images, image_output_list, len(image_list), filename_list)
+
+    def pad_images_to_max_size(self, image_list, pad_color):
+        max_h = max(img.shape[0] for img in image_list)
+        max_w = max(img.shape[1] for img in image_list)
+        fill = torch.tensor(pad_color, dtype=image_list[0].dtype) / 255.0
+
+        padded = []
+        for img in image_list:
+            h, w, c = img.shape
+            canvas = fill.reshape(1, 1, 3).repeat(max_h, max_w, 1)
+            top = (max_h - h) // 2
+            left = (max_w - w) // 2
+            canvas[top:top + h, left:left + w, :c] = img
+            padded.append(canvas)
+        return torch.stack(padded, dim=0)
 
     def process_image(self, img, target_w, target_h, mode, pad_color):
+        if mode == "默认":
+            return img
+
         if img.size == (target_w, target_h):
             return img
             
