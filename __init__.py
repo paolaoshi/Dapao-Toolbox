@@ -82,3 +82,23 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 
 # 导出所有节点
 __all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS', 'WEB_DIRECTORY']
+
+from .dapao_face_swap_region import DapaoFaceSwapRegion
+NODE_CLASS_MAPPINGS["DapaoFaceSwapRegion"] = DapaoFaceSwapRegion
+NODE_DISPLAY_NAME_MAPPINGS["DapaoFaceSwapRegion"] = "🎭 局部换脸设置@炮老师小课堂"
+
+from .dapao_face_harmonize import DapaoFaceHarmonize
+NODE_CLASS_MAPPINGS["DapaoFaceHarmonize"] = DapaoFaceHarmonize
+NODE_DISPLAY_NAME_MAPPINGS["DapaoFaceHarmonize"] = "换脸肤色、光影与朝向融合"
+
+from . import dapao_outfit_regions
+NODE_CLASS_MAPPINGS.update(dapao_outfit_regions.NODE_CLASS_MAPPINGS)
+NODE_DISPLAY_NAME_MAPPINGS.update(dapao_outfit_regions.NODE_DISPLAY_NAME_MAPPINGS)
+
+from .dapao_hem_guide import DapaoHemGuide
+NODE_CLASS_MAPPINGS["DapaoHemGuide"] = DapaoHemGuide
+NODE_DISPLAY_NAME_MAPPINGS["DapaoHemGuide"] = "👖 下摆版型与轮廓预览@炮老师小课堂"
+
+from .dapao_outfit_pose_contract import DapaoOutfitPoseContract
+NODE_CLASS_MAPPINGS["DapaoOutfitPoseContract"] = DapaoOutfitPoseContract
+NODE_DISPLAY_NAME_MAPPINGS["DapaoOutfitPoseContract"] = "姿势取景约束 · 双向近景优先"
